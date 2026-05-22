@@ -28,4 +28,11 @@ inline constexpr bool kStartFromRestart = false;
 inline constexpr int kRestartLoadStep = 0;
 inline constexpr std::string_view kRestartDir = "restart";
 
+// ── External body force ───────────────────────────────────────────────────────
+// Added on top of the active/friction force each step. Use this to drive
+// verification flows such as planar Poiseuille even when ALPHA = 0.
+inline constexpr double kBodyForceX = 0.0;
+inline constexpr double kBodyForceY = 0.0;
+inline constexpr double kBodyForceZ = 0.0;
+
 #endif // LBM_AN_SIM_CONFIG_H_

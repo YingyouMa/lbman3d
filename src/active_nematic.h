@@ -32,6 +32,18 @@ class ActiveNematicSim {
     int            time_step_ = 0;
     bool           started_from_restart_ = false;
 
+    void AddBackgroundBodyForce() {
+        for (int x = 0; x < Params::nx; ++x) {
+            for (int y = 0; y < Params::ny; ++y) {
+                for (int z = 0; z < Params::nz; ++z) {
+                    fluid_.fx[x, y, z] += kBodyForceX;
+                    fluid_.fy[x, y, z] += kBodyForceY;
+                    fluid_.fz[x, y, z] += kBodyForceZ;
+                }
+            }
+        }
+    }
+
     void RebuildLegacyRestartState() {
         for (double& ux : fluid_.ux_data) ux = 0.0;
         for (double& uy : fluid_.uy_data) uy = 0.0;
@@ -41,6 +53,7 @@ class ActiveNematicSim {
         // force without friction (u = 0), then reconstruct the consistent
         // velocity including the half-step forcing correction and friction.
         qtensor_solver_->ComputeActiveBodyForce(fluid_, qtensor_);
+        AddBackgroundBodyForce();
         lbm_.RecomputeMoments(fluid_);
 
         for (int x = 0; x < Params::nx; ++x) {
@@ -56,6 +69,7 @@ class ActiveNematicSim {
         }
 
         qtensor_solver_->ComputeActiveBodyForce(fluid_, qtensor_);
+        AddBackgroundBodyForce();
     }
 
     void Initialize() {
@@ -88,6 +102,7 @@ public:
     // Q-tensor FD step + active force + LBM step.
     void Step() {
         qtensor_solver_->Step(qtensor_, fluid_);
+        AddBackgroundBodyForce();
         lbm_.LatticeBoltzmannStep(fluid_);
         ++time_step_;
     }
