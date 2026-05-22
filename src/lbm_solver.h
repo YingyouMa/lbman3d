@@ -40,6 +40,9 @@ public:
     // Set f = f_eq at initial rho/u (call once before the time loop).
     void Initialize(FluidFields& ff) const;
 
+    // Recompute rho/u from the current distribution functions.
+    void RecomputeMoments(FluidFields& ff) const { ComputeMoments(ff); }
+
     // Single LBM step: ResetFeq → ComputeForcingTerms → Collide → Stream
     //                  → HandleBoundaries → ComputeMoments.
     void LatticeBoltzmannStep(FluidFields& ff) const;

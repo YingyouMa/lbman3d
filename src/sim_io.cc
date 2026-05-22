@@ -4,10 +4,12 @@
 #include "format_compat.h"
 
 #include <cmath>
+#include <algorithm>
 #include <ranges>
 #include <stdexcept>
 #include <hdf5.h>
 #include <cstring> // for hdf5
+#include <format>
 
 using namespace Params;
 
@@ -104,6 +106,13 @@ bool SimIO::Log(const FluidFields& ff, int time_step) {
         return false;
     }
     return true;
+}
+
+void SimIO::SyncDiagnosticsToState(const FluidFields& ff) {
+    std::copy(ff.rho_data.begin(), ff.rho_data.end(), rho_past_data_.begin());
+    std::copy(ff.ux_data.begin(), ff.ux_data.end(), ux_past_data_.begin());
+    std::copy(ff.uy_data.begin(), ff.uy_data.end(), uy_past_data_.begin());
+    std::copy(ff.uz_data.begin(), ff.uz_data.end(), uz_past_data_.begin());
 }
 
 void SimIO::ExportCSV(const FluidFields& ff, const QTensorFields& qf,
@@ -390,3 +399,121 @@ void SimIO::ExportVTKHDF(const FluidFields& ff, const QTensorFields& qf,
     H5Fclose(file);
 }
 
+void SimIO::ExportRestart(const FluidFields& ff, const QTensorFields& qf,
+                          const std::string& path, int step) {
+    const std::string file_path = std::format("{}/checkpoint_{}.h5", path, step);
+    hid_t file = H5Fcreate(file_path.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    if (file < 0) throw std::runtime_error("ExportRestart: failed to create " + file_path);
+
+    auto write_scalar_attr = [&](const char* name, int value) {
+        hsize_t dim = 1;
+        hid_t sp = H5Screate_simple(1, &dim, nullptr);
+        hid_t attr = H5Acreate2(file, name, H5T_NATIVE_INT, sp, H5P_DEFAULT, H5P_DEFAULT);
+        H5Awrite(attr, H5T_NATIVE_INT, &value);
+        H5Aclose(attr);
+        H5Sclose(sp);
+    };
+    write_scalar_attr("time_step", step);
+
+    const hsize_t q_dims[3] = {(hsize_t)nx, (hsize_t)ny, (hsize_t)nz};
+    hid_t q_sp = H5Screate_simple(3, q_dims, nullptr);
+    auto write_q = [&](const char* name, const std::vector<double>& data) {
+        hid_t ds = H5Dcreate2(file, name, H5T_NATIVE_DOUBLE, q_sp,
+                              H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        H5Dwrite(ds, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, data.data());
+        H5Dclose(ds);
+    };
+    auto write_scalar_field = [&](const char* name, const std::vector<double>& data) {
+        hid_t ds = H5Dcreate2(file, name, H5T_NATIVE_DOUBLE, q_sp,
+                              H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        H5Dwrite(ds, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, data.data());
+        H5Dclose(ds);
+    };
+    write_q("qxx", qf.qxx_data);
+    write_q("qxy", qf.qxy_data);
+    write_q("qxz", qf.qxz_data);
+    write_q("qyy", qf.qyy_data);
+    write_q("qyz", qf.qyz_data);
+    write_scalar_field("rho", ff.rho_data);
+    write_scalar_field("ux", ff.ux_data);
+    write_scalar_field("uy", ff.uy_data);
+    write_scalar_field("uz", ff.uz_data);
+    write_scalar_field("fx", ff.fx_data);
+    write_scalar_field("fy", ff.fy_data);
+    write_scalar_field("fz", ff.fz_data);
+    H5Sclose(q_sp);
+
+    const hsize_t f_dims[4] = {(hsize_t)nx, (hsize_t)ny, (hsize_t)nz, (hsize_t)ndir};
+    hid_t f_sp = H5Screate_simple(4, f_dims, nullptr);
+    hid_t f_ds = H5Dcreate2(file, "f", H5T_NATIVE_DOUBLE, f_sp,
+                            H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    H5Dwrite(f_ds, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, ff.f_data.data());
+    H5Dclose(f_ds);
+    H5Sclose(f_sp);
+
+    H5Fclose(file);
+}
+
+int SimIO::LoadRestart(FluidFields& ff, QTensorFields& qf,
+                       const std::string& path, int step, bool& has_hydro_state) {
+    const std::string file_path = std::format("{}/checkpoint_{}.h5", path, step);
+    hid_t file = H5Fopen(file_path.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+    if (file < 0) throw std::runtime_error("LoadRestart: failed to open " + file_path);
+
+    auto read_q = [&](const char* name, std::vector<double>& data) {
+        hid_t ds = H5Dopen2(file, name, H5P_DEFAULT);
+        if (ds < 0) {
+            throw std::runtime_error("LoadRestart: missing dataset " + std::string(name)
+                                     + " in " + file_path);
+        }
+        H5Dread(ds, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, data.data());
+        H5Dclose(ds);
+    };
+    auto try_read_scalar_field = [&](const char* name, std::vector<double>& data) {
+        hid_t ds = -1;
+        H5E_BEGIN_TRY {
+            ds = H5Dopen2(file, name, H5P_DEFAULT);
+        } H5E_END_TRY;
+        if (ds < 0) {
+            return false;
+        }
+        H5Dread(ds, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, data.data());
+        H5Dclose(ds);
+        return true;
+    };
+    read_q("qxx", qf.qxx_data);
+    read_q("qxy", qf.qxy_data);
+    read_q("qxz", qf.qxz_data);
+    read_q("qyy", qf.qyy_data);
+    read_q("qyz", qf.qyz_data);
+    const bool have_rho = try_read_scalar_field("rho", ff.rho_data);
+    const bool have_ux = try_read_scalar_field("ux", ff.ux_data);
+    const bool have_uy = try_read_scalar_field("uy", ff.uy_data);
+    const bool have_uz = try_read_scalar_field("uz", ff.uz_data);
+    const bool have_fx = try_read_scalar_field("fx", ff.fx_data);
+    const bool have_fy = try_read_scalar_field("fy", ff.fy_data);
+    const bool have_fz = try_read_scalar_field("fz", ff.fz_data);
+    has_hydro_state = have_rho && have_ux && have_uy && have_uz
+                   && have_fx && have_fy && have_fz;
+    if (!has_hydro_state && (have_rho || have_ux || have_uy || have_uz || have_fx || have_fy || have_fz)) {
+        throw std::runtime_error("LoadRestart: checkpoint mixes legacy and full hydrodynamic datasets: " + file_path);
+    }
+
+    hid_t f_ds = H5Dopen2(file, "f", H5P_DEFAULT);
+    if (f_ds < 0) {
+        throw std::runtime_error("LoadRestart: missing dataset f in " + file_path);
+    }
+    H5Dread(f_ds, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, ff.f_data.data());
+    H5Dclose(f_ds);
+
+    hid_t attr = H5Aopen(file, "time_step", H5P_DEFAULT);
+    if (attr < 0) {
+        throw std::runtime_error("LoadRestart: missing time_step attribute in " + file_path);
+    }
+    int time_step = 0;
+    H5Aread(attr, H5T_NATIVE_INT, &time_step);
+    H5Aclose(attr);
+
+    H5Fclose(file);
+    return time_step;
+}

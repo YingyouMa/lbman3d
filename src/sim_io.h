@@ -39,6 +39,11 @@ public:
 
     void ExportVTKHDF(const FluidFields& ff, const QTensorFields& qf,
                 const std::string& path, int step, double time);
+    void ExportRestart(const FluidFields& ff, const QTensorFields& qf,
+                const std::string& path, int step);
+    int LoadRestart(FluidFields& ff, QTensorFields& qf,
+                const std::string& path, int step, bool& has_hydro_state);
+    void SyncDiagnosticsToState(const FluidFields& ff);
     // Write one CSV per lattice direction to `path/`.
     void ExportDistributionCSV(const FluidFields& ff,
         const std::string& path, int step);
