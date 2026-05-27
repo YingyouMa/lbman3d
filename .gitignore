@@ -76,3 +76,8 @@ perf*
 # Runtime artifacts
 restart/
 parameters.auto.md
+output.resume
+errors.resume
+slurm-*.out
+slurm-*.err
+project_runs/

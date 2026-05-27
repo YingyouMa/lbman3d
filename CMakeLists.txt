@@ -35,21 +35,23 @@ if(NOT HAVE_STD_FORMAT)
     FetchContent_MakeAvailable(fmt)
 endif()
 
-# message("mdspan_SOURCE_DIR is set to ${mdspan_SOURCE_DIR}")
-# message("mdspan_INCLUDE_DIRS is set to ${mdspan_INCLUDE_DIR}")
 find_package(HDF5 REQUIRED COMPONENTS C)
 
 add_executable(main)
 
-# Set include directories.
 target_include_directories(main PUBLIC
         ${HDF5_INCLUDE_DIRS}
 )
 
+if(DEFINED LBMAN3D_CASE_DIR)
+    target_include_directories(main BEFORE PUBLIC
+        ${LBMAN3D_CASE_DIR}
+    )
+endif()
+
 target_link_libraries(main PRIVATE
     ${HDF5_C_LIBRARIES})
 
-# Set include directories.
 target_include_directories(main PUBLIC
         ${mdspan_SOURCE_DIR}
 )
@@ -64,4 +66,3 @@ else()
 endif()
 
 add_subdirectory(src)
-
