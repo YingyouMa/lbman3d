@@ -6,7 +6,9 @@
 
 #include "grid.h"
 #include "sim_config.h"
+#include "case_config.h"
 #include "params.h"
+#include "initial_conditions.h"
 #include "fluid_fields.h"
 #include "qtensor_fields.h"
 #include "lbm_solver.h"
@@ -82,8 +84,8 @@ class ActiveNematicSim {
             io_.SyncDiagnosticsToState(fluid_);
             started_from_restart_ = true;
         } else {
+            InitializeFields<typename CaseConfig::CurrentCase::InitialCondition>(fluid_, qtensor_);
             lbm_.Initialize(fluid_);
-            qtensor_solver_->Initialize(qtensor_);
         }
     }
 public:
@@ -111,7 +113,6 @@ public:
     bool Log() { return io_.Log(fluid_, time_step_); }
 
     void Export(const std::string& path, ExportFormat fmt) {
-        // io_.Export(fluid_, qtensor_, path, time_step_);
         switch (fmt)
         {
         case CSV:

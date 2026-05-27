@@ -73,3 +73,6 @@ data/
 
 # Profiling output
 perf*
+# Runtime artifacts
+restart/
+parameters.auto.md

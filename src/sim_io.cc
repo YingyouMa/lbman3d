@@ -1,11 +1,13 @@
 #include "sim_io.h"
 #include "params.h"
 #include "sim_config.h"
+#include "case_config.h"
 #include "format_compat.h"
 
 #include <cmath>
 #include <algorithm>
 #include <ranges>
+#include <limits>
 #include <stdexcept>
 #include <hdf5.h>
 #include <cstring> // for hdf5
@@ -26,7 +28,7 @@ SimIO::SimIO() :
     director(nx * ny * nz * 3, 0.0),
     order(nx * ny * nz, 0.0)
 {
-    log_file_.open("lbm.log", std::ios::out);
+    log_file_.open(std::string(CaseConfig::CurrentCase::kLogFile), std::ios::out);
 }
 
 SimIO::~SimIO() {
@@ -39,6 +41,11 @@ void SimIO::LogSetupSummary(std::string_view bc_name) {
     compat::println(log_file_, "##########################################################");
     compat::println(log_file_, "#####################   Parameters   #####################");
     compat::println(log_file_, "##########################################################");
+    compat::println(log_file_, "");
+    compat::println(log_file_, "--- Case ---");
+    compat::println(log_file_, "  case_name = {}", CaseConfig::CurrentCase::name);
+    compat::println(log_file_, "  output_dir = {}", CaseConfig::CurrentCase::kOutputDir);
+    compat::println(log_file_, "  restart_dir = {}", CaseConfig::CurrentCase::kRestartDir);
     compat::println(log_file_, "");
     compat::println(log_file_, "--- Grid ---");
     compat::println(log_file_, "  nx = {}, ny = {}, nz = {}", nx, ny, nz);
@@ -98,8 +105,11 @@ bool SimIO::Log(const FluidFields& ff, int time_step) {
         }
     }
 
+    const double relative_error = e2 > 0.0
+        ? e1 / e2
+        : (e1 == 0.0 ? 0.0 : std::numeric_limits<double>::infinity());
     compat::println(log_file_, "Time {}: Mass: {}, Px: {}, Py: {}, Pz: {}, Relative Error: {}",
-                    time_step, mass, px, py, pz, e1/e2);
+                    time_step, mass, px, py, pz, relative_error);
     std::flush(log_file_);
     if (std::isnan(mass) || std::isnan(px) || std::isnan(py) || std::isnan(pz)) {
         compat::println(log_file_, "DIVERGED at time step {} — aborting.", time_step);
