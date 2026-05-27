@@ -30,6 +30,23 @@ Then edit only these files:
 - `parameters.h`
 - `run_config.h`
 
+## Initial Condition Modes
+
+`init_config.h` supports two normal workflows:
+
+- `LegacyRandomNematicIC`
+  Fresh random Q initialization with zero velocity.
+- `ExternalH5InputIC`
+  Read both Q and velocity from an external HDF5 file.
+
+For `ExternalH5InputIC`, the input file should contain datasets:
+
+- `qxx`, `qxy`, `qxz`, `qyy`, `qyz`
+- `ux`, `uy`, `uz`
+- optionally `rho`
+
+If `rho` is omitted, the configured default density is used.
+
 ## Build And Run Locally
 
 From inside the case directory:

@@ -38,6 +38,7 @@ endif()
 find_package(HDF5 REQUIRED COMPONENTS C)
 
 add_executable(main)
+set_target_properties(main PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 target_include_directories(main PUBLIC
         ${HDF5_INCLUDE_DIRS}

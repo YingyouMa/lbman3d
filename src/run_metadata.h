@@ -13,6 +13,23 @@ constexpr const char* BoolString(T value) {
     return value ? "true" : "false";
 }
 
+template<typename IC>
+void WriteInitialConditionMetadata(std::ofstream& out) {
+    out << "- rho = " << IC::rho << "\n";
+    if constexpr (requires { IC::qxx_base; }) out << "- qxx_base = " << IC::qxx_base << "\n";
+    if constexpr (requires { IC::qxy_base; }) out << "- qxy_base = " << IC::qxy_base << "\n";
+    if constexpr (requires { IC::qxz_base; }) out << "- qxz_base = " << IC::qxz_base << "\n";
+    if constexpr (requires { IC::qyy_base; }) out << "- qyy_base = " << IC::qyy_base << "\n";
+    if constexpr (requires { IC::qyz_base; }) out << "- qyz_base = " << IC::qyz_base << "\n";
+    if constexpr (requires { IC::noise_amplitude; }) out << "- noise_amplitude = " << IC::noise_amplitude << "\n";
+    if constexpr (requires { IC::use_fixed_seed; }) out << "- use_fixed_seed = " << BoolString(IC::use_fixed_seed) << "\n";
+    if constexpr (requires { IC::seed; }) out << "- seed = " << IC::seed << "\n";
+    if constexpr (requires { IC::input_file; }) out << "- input_file = " << IC::input_file << "\n";
+    if constexpr (requires { IC::load_q; }) out << "- load_q = " << BoolString(IC::load_q) << "\n";
+    if constexpr (requires { IC::load_velocity; }) out << "- load_velocity = " << BoolString(IC::load_velocity) << "\n";
+    if constexpr (requires { IC::load_density; }) out << "- load_density = " << BoolString(IC::load_density) << "\n";
+}
+
 template<typename Case, typename BC>
 void WriteRunMetadata(const std::string& path,
                       bool started_from_restart,
@@ -91,15 +108,7 @@ void WriteRunMetadata(const std::string& path,
         << ", U:" << VelocityBoundaryName<typename BC::ZHi::UBC>() << "\n\n";
 
     out << "## Initial Condition Details\n\n";
-    out << "- rho = " << Case::InitialCondition::rho << "\n";
-    out << "- qxx_base = " << Case::InitialCondition::qxx_base << "\n";
-    out << "- qxy_base = " << Case::InitialCondition::qxy_base << "\n";
-    out << "- qxz_base = " << Case::InitialCondition::qxz_base << "\n";
-    out << "- qyy_base = " << Case::InitialCondition::qyy_base << "\n";
-    out << "- qyz_base = " << Case::InitialCondition::qyz_base << "\n";
-    out << "- noise_amplitude = " << Case::InitialCondition::noise_amplitude << "\n";
-    out << "- use_fixed_seed = " << BoolString(Case::InitialCondition::use_fixed_seed) << "\n";
-    out << "- seed = " << Case::InitialCondition::seed << "\n";
+    WriteInitialConditionMetadata<typename Case::InitialCondition>(out);
 }
 
 #endif  // LBM_AN_RUN_METADATA_H_

@@ -20,3 +20,10 @@ For HPCC submission:
 ```bash
 ./submit.sh
 ```
+
+To initialize both Q and velocity from an external file, switch `SelectedInitialCondition`
+in `init_config.h` to `ExternalH5InputIC` and point `input_file` at an HDF5 file containing:
+
+- `qxx`, `qxy`, `qxz`, `qyy`, `qyz`
+- `ux`, `uy`, `uz`
+- optionally `rho`
