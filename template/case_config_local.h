@@ -25,6 +25,8 @@ struct CurrentCase {
     static constexpr int kRestartInterval = SelectedRunConfig::kRestartInterval;
     static constexpr bool kStartFromRestart = SelectedRunConfig::kStartFromRestart;
     static constexpr int kRestartLoadStep = SelectedRunConfig::kRestartLoadStep;
+    static constexpr bool kExportCSV = SelectedRunConfig::kExportCSV;
+    static constexpr bool kSaveQData = SelectedRunConfig::kSaveQData;
 
     static constexpr double kBodyForceX = SelectedRunConfig::kBodyForceX;
     static constexpr double kBodyForceY = SelectedRunConfig::kBodyForceY;

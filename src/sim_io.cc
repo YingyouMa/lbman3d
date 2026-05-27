@@ -136,11 +136,13 @@ void SimIO::ExportCSV(const FluidFields& ff, const QTensorFields& qf,
     uz_file .open(compat::format("{}/uz_{}.csv",     path, step), std::ios::out);
     dm_file .open(compat::format("{}/delta_m_{}.csv",path, step), std::ios::out);
     
-    qxx_file.open(compat::format("{}/qxx_{}.csv",    path, step), std::ios::out);
-    qxy_file.open(compat::format("{}/qxy_{}.csv",    path, step), std::ios::out);
-    qxz_file.open(compat::format("{}/qxz_{}.csv",    path, step), std::ios::out);
-    qyy_file.open(compat::format("{}/qyy_{}.csv",    path, step), std::ios::out);
-    qyz_file.open(compat::format("{}/qyz_{}.csv",    path, step), std::ios::out);
+    if constexpr (CaseConfig::CurrentCase::kSaveQData) {
+        qxx_file.open(compat::format("{}/qxx_{}.csv",    path, step), std::ios::out);
+        qxy_file.open(compat::format("{}/qxy_{}.csv",    path, step), std::ios::out);
+        qxz_file.open(compat::format("{}/qxz_{}.csv",    path, step), std::ios::out);
+        qyy_file.open(compat::format("{}/qyy_{}.csv",    path, step), std::ios::out);
+        qyz_file.open(compat::format("{}/qyz_{}.csv",    path, step), std::ios::out);
+    }
 
     if (!rho_file.is_open())
         throw std::runtime_error("Failed to open data file");
@@ -152,11 +154,13 @@ void SimIO::ExportCSV(const FluidFields& ff, const QTensorFields& qf,
                 compat::print(ux_file,   "{},", ff.ux[x, y, z]);
                 compat::print(uy_file,   "{},", ff.uy[x, y, z]);
                 compat::print(uz_file,   "{},", ff.uz[x, y, z]);
-                compat::print(qxx_file,  "{},", qf.qxx[x, y, z]);
-                compat::print(qxy_file,  "{},", qf.qxy[x, y, z]);
-                compat::print(qxz_file,  "{},", qf.qxz[x, y, z]);
-                compat::print(qyy_file,  "{},", qf.qyy[x, y, z]);
-                compat::print(qyz_file,  "{},", qf.qyz[x, y, z]);
+                if constexpr (CaseConfig::CurrentCase::kSaveQData) {
+                    compat::print(qxx_file,  "{},", qf.qxx[x, y, z]);
+                    compat::print(qxy_file,  "{},", qf.qxy[x, y, z]);
+                    compat::print(qxz_file,  "{},", qf.qxz[x, y, z]);
+                    compat::print(qyy_file,  "{},", qf.qyy[x, y, z]);
+                    compat::print(qyz_file,  "{},", qf.qyz[x, y, z]);
+                }
                 compat::print(dm_file,   "{},", ff.rho[x,y,z] - rho_past_[x,y,z]);
                 rho_past_[x, y, z] = ff.rho[x, y, z];
             }
@@ -164,11 +168,13 @@ void SimIO::ExportCSV(const FluidFields& ff, const QTensorFields& qf,
             compat::print(ux_file,   "{}\n", ff.ux[x, y, nz-1]);
             compat::print(uy_file,   "{}\n", ff.uy[x, y, nz-1]);
             compat::print(uz_file,   "{}\n", ff.uz[x, y, nz-1]);
-            compat::print(qxx_file,  "{}\n", qf.qxx[x, y, nz-1]);
-            compat::print(qxy_file,  "{}\n", qf.qxy[x, y, nz-1]);
-            compat::print(qxz_file,  "{}\n", qf.qxz[x, y, nz-1]);
-            compat::print(qyy_file,  "{}\n", qf.qyy[x, y, nz-1]);
-            compat::print(qyz_file,  "{}\n", qf.qyz[x, y, nz-1]);
+            if constexpr (CaseConfig::CurrentCase::kSaveQData) {
+                compat::print(qxx_file,  "{}\n", qf.qxx[x, y, nz-1]);
+                compat::print(qxy_file,  "{}\n", qf.qxy[x, y, nz-1]);
+                compat::print(qxz_file,  "{}\n", qf.qxz[x, y, nz-1]);
+                compat::print(qyy_file,  "{}\n", qf.qyy[x, y, nz-1]);
+                compat::print(qyz_file,  "{}\n", qf.qyz[x, y, nz-1]);
+            }
             compat::print(dm_file,   "{}\n", ff.rho[x, y, nz-1] - rho_past_[x, y, nz-1]);
             rho_past_[x, y, nz-1] = ff.rho[x, y, nz-1];
         }
@@ -361,9 +367,11 @@ void SimIO::ExportVTKHDF(const FluidFields& ff, const QTensorFields& qf,
             write_scalar(name.c_str(), [&](int x, int y, int z) { return ff.f[x, y, z, i]; });
         }
 
-    }    
-    QtensorToOrderDirector(qf);
-    write_scalar("order", [&](int x, int y, int z) { return order[(z * ny * nx + y * nx + x)]; });
+    }
+    if constexpr (CaseConfig::CurrentCase::kSaveQData) {
+        QtensorToOrderDirector(qf);
+        write_scalar("order", [&](int x, int y, int z) { return order[(z * ny * nx + y * nx + x)]; });
+    }
     H5Sclose(scalar_sp);
 
     // velocity — shape [1, ny, nx, 3], components (ux, uy, 0)
@@ -384,13 +392,15 @@ void SimIO::ExportVTKHDF(const FluidFields& ff, const QTensorFields& qf,
         H5Dclose(ds);
         H5Sclose(vel_sp);
         
-        const hsize_t dir_dims[4] = {(hsize_t)nz, (hsize_t)ny, (hsize_t)nx, 3};
-        hid_t dir_sp = H5Screate_simple(4, dir_dims, nullptr);
-        hid_t ds2 = H5Dcreate2(pd, "director", H5T_NATIVE_DOUBLE, dir_sp,
-                               H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-        H5Dwrite(ds2, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, director.data());
-        H5Dclose(ds2);
-        H5Sclose(dir_sp);
+        if constexpr (CaseConfig::CurrentCase::kSaveQData) {
+            const hsize_t dir_dims[4] = {(hsize_t)nz, (hsize_t)ny, (hsize_t)nx, 3};
+            hid_t dir_sp = H5Screate_simple(4, dir_dims, nullptr);
+            hid_t ds2 = H5Dcreate2(pd, "director", H5T_NATIVE_DOUBLE, dir_sp,
+                                   H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+            H5Dwrite(ds2, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, director.data());
+            H5Dclose(ds2);
+            H5Sclose(dir_sp);
+        }
     }
 
     // --- FieldData: simulation time ---

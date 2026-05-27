@@ -58,7 +58,9 @@ void WriteRunMetadata(const std::string& path,
     out << "- kSaveInterval = " << Case::kSaveInterval << "\n";
     out << "- kRestartInterval = " << Case::kRestartInterval << "\n";
     out << "- kStartFromRestart = " << BoolString(Case::kStartFromRestart) << "\n";
-    out << "- kRestartLoadStep = " << Case::kRestartLoadStep << "\n\n";
+    out << "- kRestartLoadStep = " << Case::kRestartLoadStep << "\n";
+    out << "- kExportCSV = " << BoolString(Case::kExportCSV) << "\n";
+    out << "- kSaveQData = " << BoolString(Case::kSaveQData) << "\n\n";
 
     out << "## Grid\n\n";
     out << "- nx = " << Params::nx << "\n";

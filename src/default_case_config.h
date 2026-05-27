@@ -18,6 +18,16 @@ struct SlitFreeSlipBC {
     static constexpr std::string_view name = "SlitFreeSlip";
 };
 
+struct FullyPeriodicBC {
+    using XLo = WallSpec<Periodic, Periodic>;
+    using XHi = WallSpec<Periodic, Periodic>;
+    using YLo = WallSpec<Periodic, Periodic>;
+    using YHi = WallSpec<Periodic, Periodic>;
+    using ZLo = WallSpec<Periodic, Periodic>;
+    using ZHi = WallSpec<Periodic, Periodic>;
+    static constexpr std::string_view name = "FullyPeriodic";
+};
+
 struct LegacyRandomNematicIC {
     static constexpr std::string_view name = "LegacyRandomNematic";
     static constexpr double rho = 1.1;
@@ -63,6 +73,8 @@ struct DefaultCase {
     static constexpr int kRestartInterval = 10000;
     static constexpr bool kStartFromRestart = false;
     static constexpr int kRestartLoadStep = 0;
+    static constexpr bool kExportCSV = false;
+    static constexpr bool kSaveQData = true;
 
     static constexpr double kBodyForceX = 0.0;
     static constexpr double kBodyForceY = 0.0;

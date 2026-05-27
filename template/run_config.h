@@ -17,6 +17,8 @@ struct SelectedRunConfig {
     static constexpr int kRestartInterval = 10000;
     static constexpr bool kStartFromRestart = false;
     static constexpr int kRestartLoadStep = 0;
+    static constexpr bool kExportCSV = false;
+    static constexpr bool kSaveQData = true;
 
     static constexpr double kBodyForceX = 0.0;
     static constexpr double kBodyForceY = 0.0;

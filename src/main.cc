@@ -22,7 +22,8 @@ int main(int argc, char* argv[]) {
         const bool is_restored_state = started_from_restart && t == resume_step;
         if (!is_restored_state && t % kSaveInterval == 0) {
             std::cout << compat::format("Step {}", t) << "\n";
-            sim.Export(std::string(CaseConfig::CurrentCase::kOutputDir), VTKHDF);
+            sim.Export(std::string(CaseConfig::CurrentCase::kOutputDir),
+                       CaseConfig::CurrentCase::kExportCSV ? CSV : VTKHDF);
             if constexpr (!Params::kDebugLogging) {
                 if (!sim.Log()) {
                     std::cerr << compat::format("Simulation diverged at step {} — exiting.\n", t);
