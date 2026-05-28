@@ -17,8 +17,8 @@ set -euo pipefail
 
 if command -v module >/dev/null 2>&1; then
     module purge || true
-    # Edit these module loads if your HPCC toolchain differs.
-    module load cmake || true
+    module load share_modules/CMAKE/3.29
+    module load share_modules/HDF5/1.10.5_gcc
 fi
 
 export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK:-16}
@@ -27,7 +27,4 @@ export OMP_PROC_BIND=close
 export OMP_NESTED=FALSE
 
 cd "$SLURM_SUBMIT_DIR"
-mkdir -p output
-cmake -S . -B build-case
-cmake --build build-case -j "${SLURM_CPUS_PER_TASK:-16}"
 ./build-case/main > output.resume 2> errors.resume
