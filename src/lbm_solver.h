@@ -4,9 +4,6 @@
 #include "grid.h"
 #include "fluid_fields.h"
 
-// Pure LBM fluid solver — no knowledge of Q-tensor.
-// fx/fy in FluidFields are the only coupling point; set them externally
-// (e.g. by QTensorSolver) before calling LatticeBoltzmannStep.
 template<typename BC>
 class LbmSolver {
     Grid<BC> grid_;
@@ -23,8 +20,6 @@ class LbmSolver {
     void Collide(FluidFields& ff) const;
     void Stream(FluidFields& ff) const;
 
-    // Per-wall bounce-back / specular-reflection handlers.
-    // Dispatched at compile time via if constexpr on WallSpec::UBC.
     template<typename WallSpec> void HandleWallZHi(FluidFields& ff) const;
     template<typename WallSpec> void HandleWallZLo(FluidFields& ff) const;
     template<typename WallSpec> void HandleWallYHi(FluidFields& ff) const;
@@ -36,12 +31,8 @@ class LbmSolver {
 
 public:
     explicit LbmSolver(Grid<BC> grid);
-
-    // Set f = f_eq at initial rho/u (call once before the time loop).
     void Initialize(FluidFields& ff) const;
-
-    // Single LBM step: ResetFeq → ComputeForcingTerms → Collide → Stream
-    //                  → HandleBoundaries → ComputeMoments.
+    void RecomputeMoments(FluidFields& ff) const { ComputeMoments(ff); }
     void LatticeBoltzmannStep(FluidFields& ff) const;
 };
 

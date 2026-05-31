@@ -64,6 +64,34 @@ struct is_anchoring_t<Anchoring<S, A, B>> : std::true_type {};
 template<typename T>
 inline constexpr bool is_anchoring_v = is_anchoring_t<T>::value;
 
+template<typename T>
+constexpr std::string_view QBoundaryName() {
+    if constexpr (std::is_same_v<T, Periodic>) {
+        return "Periodic";
+    } else if constexpr (std::is_same_v<T, Neumann>) {
+        return "Neumann";
+    } else if constexpr (is_anchoring_v<T>) {
+        return "Anchoring";
+    } else {
+        return "UnknownQBoundary";
+    }
+}
+
+template<typename T>
+constexpr std::string_view VelocityBoundaryName() {
+    if constexpr (std::is_same_v<T, Periodic>) {
+        return "Periodic";
+    } else if constexpr (std::is_same_v<T, NoSlip>) {
+        return "NoSlip";
+    } else if constexpr (std::is_same_v<T, SpecularReflection>) {
+        return "SpecularReflection";
+    } else if constexpr (is_moving_wall_v<T>) {
+        return "MovingWall";
+    } else {
+        return "UnknownVelocityBoundary";
+    }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Per-wall BC bundle: Q stencil policy + velocity BC for one face
 // ─────────────────────────────────────────────────────────────────────────────

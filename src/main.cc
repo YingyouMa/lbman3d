@@ -1,22 +1,40 @@
+#include <filesystem>
 #include <iostream>
-#include <ranges>
+
 #include "format_compat.h"
 #include "sim_config.h"
+#include "case_config.h"
 #include "active_nematic.h"
 #include "params.h"
+#include "run_metadata.h"
 
 int main(int argc, char* argv[]) {
+    std::filesystem::create_directories(CaseConfig::CurrentCase::kOutputDir);
+    std::filesystem::create_directories(kRestartDir);
+
     ActiveNematicSim<SimBC> sim{Grid<SimBC>(Params::nx, Params::ny, Params::nz)};
-    for (int t : std::views::iota(0, kNumSteps)) {
-        if (t % kSaveInterval == 0) {
+    const int resume_step = sim.GetTimeStep();
+    const bool started_from_restart = sim.StartedFromRestart();
+    WriteRunMetadata<CaseConfig::CurrentCase, SimBC>(
+        std::string(CaseConfig::CurrentCase::kParameterReportFile),
+        started_from_restart,
+        resume_step);
+
+    for (int t = sim.GetTimeStep(); t < kNumSteps; ++t) {
+        const bool is_restored_state = started_from_restart && t == resume_step;
+        if (!is_restored_state && t % kSaveInterval == 0) {
             std::cout << compat::format("Step {}", t) << "\n";
-            sim.Export("data", VTKHDF);
+            sim.Export(std::string(CaseConfig::CurrentCase::kOutputDir),
+                       CaseConfig::CurrentCase::kExportCSV ? CSV : VTKHDF);
             if constexpr (!Params::kDebugLogging) {
                 if (!sim.Log()) {
                     std::cerr << compat::format("Simulation diverged at step {} — exiting.\n", t);
                     return 1;
                 }
             }
+        }
+        if (!is_restored_state && t % kRestartInterval == 0) {
+            sim.ExportRestart(std::string(kRestartDir));
         }
         sim.Step();
         if constexpr (Params::kDebugLogging) {

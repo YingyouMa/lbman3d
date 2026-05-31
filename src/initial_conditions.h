@@ -63,22 +63,22 @@ struct InitialConditionApplier<CaseConfig::LegacyRandomNematicIC> {
         std::uniform_real_distribution<double> noise_dist(-Config::noise_amplitude,
                                                           Config::noise_amplitude);
 
-        for (int x = 0; x < Params::nx; ++x) {
+        for (int z = 0; z < Params::nz; ++z) {
             for (int y = 0; y < Params::ny; ++y) {
-                for (int z = 0; z < Params::nz; ++z) {
-                    ff.rho[x, y, z] = Config::rho;
-                    ff.ux[x, y, z] = 0.0;
-                    ff.uy[x, y, z] = 0.0;
-                    ff.uz[x, y, z] = 0.0;
-                    ff.fx[x, y, z] = 0.0;
-                    ff.fy[x, y, z] = 0.0;
-                    ff.fz[x, y, z] = 0.0;
+                for (int x = 0; x < Params::nx; ++x) {
+                    ff.rho[z, y, x] = Config::rho;
+                    ff.ux[z, y, x] = 0.0;
+                    ff.uy[z, y, x] = 0.0;
+                    ff.uz[z, y, x] = 0.0;
+                    ff.fx[z, y, x] = 0.0;
+                    ff.fy[z, y, x] = 0.0;
+                    ff.fz[z, y, x] = 0.0;
 
-                    qf.qxx[x, y, z] = Config::qxx_base + noise_dist(gen);
-                    qf.qxy[x, y, z] = Config::qxy_base + noise_dist(gen);
-                    qf.qxz[x, y, z] = Config::qxz_base + noise_dist(gen);
-                    qf.qyy[x, y, z] = Config::qyy_base + noise_dist(gen);
-                    qf.qyz[x, y, z] = Config::qyz_base + noise_dist(gen);
+                    qf.qxx[z, y, x] = Config::qxx_base + noise_dist(gen);
+                    qf.qxy[z, y, x] = Config::qxy_base + noise_dist(gen);
+                    qf.qxz[z, y, x] = Config::qxz_base + noise_dist(gen);
+                    qf.qyy[z, y, x] = Config::qyy_base + noise_dist(gen);
+                    qf.qyz[z, y, x] = Config::qyz_base + noise_dist(gen);
                 }
             }
         }
